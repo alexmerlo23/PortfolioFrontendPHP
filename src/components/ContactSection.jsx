@@ -9,17 +9,11 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
-import emailjs from '@emailjs/browser';
 
 export const ContactSection = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef();
-  
-  // EmailJS configuration from environment variables
-  const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID;
-  const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID;
-  const publicKey = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,120 +38,68 @@ export const ContactSection = () => {
       return;
     }
 
-    // Debug EmailJS configuration
-    console.log('EmailJS Config:', {
-      serviceId,
-      templateId,
-      publicKey: publicKey ? `${publicKey.substring(0, 5)}...` : 'undefined',
-      hasForm: !!formRef.current
-    });
-
-    // Check if EmailJS config is complete
-    if (!serviceId || !templateId || !publicKey) {
-      console.error('Missing EmailJS configuration:', {
-        serviceId: !!serviceId,
-        templateId: !!templateId,
-        publicKey: !!publicKey
-      });
-    }
-
     try {
-      // Send to both EmailJS and Backend API simultaneously
+      // Send to backend API (which now handles both database and EmailJS)
       const API_URL = process.env.NODE_ENV === 'production' 
         ? 'https://portfoliobackend-cbcjgweeaza9gubx.eastus2-01.azurewebsites.net/api/contact'
         : 'http://localhost:3001/api/contact';
-
-      // Execute both operations at the same time
-      const [emailResult, backendResult] = await Promise.allSettled([
-        // EmailJS Promise
-        emailjs.sendForm(serviceId, templateId, formRef.current, publicKey),
-        
-        // Backend API Promise
-        fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(contactData)
-        }).then(async (response) => {
-          const contentType = response.headers.get('content-type');
-          let result;
-          
-          if (contentType && contentType.includes('application/json')) {
-            result = await response.json();
-          } else {
-            const text = await response.text();
-            throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}...`);
-          }
-
-          if (!response.ok) {
-            throw new Error(result.error || `HTTP ${response.status}: ${result.message || 'Failed to send message'}`);
-          }
-          
-          return result;
-        })
-      ]);
-
-      // Check results
-      const emailSuccess = emailResult.status === 'fulfilled';
-      const backendSuccess = backendResult.status === 'fulfilled';
-
-      console.log('EmailJS Result:', emailResult);
-      console.log('Backend Result:', backendResult);
-
-      // Log specific EmailJS error details
-      if (!emailSuccess) {
-        console.error('EmailJS Error Details:', {
-          status: emailResult.status,
-          reason: emailResult.reason,
-          message: emailResult.reason?.message,
-          text: emailResult.reason?.text
-        });
-      }
-
-      // Determine success message based on results
-      if (emailSuccess && backendSuccess) {
-        toast({
-          title: "Message sent successfully!",
-          description: "Thank you for your message. I'll get back to you soon.",
-        });
-      } else if (emailSuccess || backendSuccess) {
-        toast({
-          title: "Message sent!",
-          description: "Your message was delivered. I'll get back to you soon.",
-        });
-        
-        // Log partial failures for debugging
-        if (!emailSuccess) {
-          console.error('EmailJS failed:', emailResult.reason);
-        }
-        if (!backendSuccess) {
-          console.error('Backend failed:', backendResult.reason);
-        }
-      } else {
-        // Both failed
-        throw new Error('Both email and database operations failed');
-      }
       
-      // Reset the form on any success
-      formRef.current.reset();
+      console.log('Sending to:', API_URL);
+      console.log('Data:', contactData);
+      
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactData)
+      });
 
+      console.log('Response status:', response.status);
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      let result;
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        // If not JSON, get text to see what we received
+        const text = await response.text();
+        console.log('Non-JSON response:', text);
+        throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}...`);
+      }
+
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}: ${result.message || 'Failed to send message'}`);
+      }
+
+      // Show success message
+      const emailStatus = result.emailSent ? " Email notification sent!" : " (Email notification may have failed)";
+      toast({
+        title: "Message sent!",
+        description: `Thank you for your message. I'll get back to you soon.${emailStatus}`,
+      });
+      
+      // Reset the form
+      formRef.current.reset();
+      
     } catch (error) {
-      console.error('Complete failure:', error);
+      console.error('Error sending message:', error);
       
       // Handle different types of errors
       let errorMessage = "There was a problem sending your message. Please try again.";
       
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
         errorMessage = "Network error. Please check your connection and try again.";
-      } else if (error.message?.includes('Invalid')) {
-        errorMessage = "Invalid email configuration. Please try again or contact directly.";
-      } else if (error.message?.includes('Too many')) {
+      } else if (error.message.includes('Too many')) {
         errorMessage = "Too many requests. Please wait a few minutes before trying again.";
-      } else if (error.message?.includes('404')) {
-        errorMessage = "API endpoint not found. The server may be down.";
-      } else if (error.message?.includes('500')) {
+      } else if (error.message.includes('404')) {
+        errorMessage = "API endpoint not found. The server may be down or the route is incorrect.";
+      } else if (error.message.includes('500')) {
         errorMessage = "Server error. Please try again later.";
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       toast({
