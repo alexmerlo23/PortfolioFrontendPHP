@@ -52,6 +52,15 @@ export const ContactSection = () => {
       hasForm: !!formRef.current
     });
 
+    // Check if EmailJS config is complete
+    if (!serviceId || !templateId || !publicKey) {
+      console.error('Missing EmailJS configuration:', {
+        serviceId: !!serviceId,
+        templateId: !!templateId,
+        publicKey: !!publicKey
+      });
+    }
+
     try {
       // Send to both EmailJS and Backend API simultaneously
       const API_URL = process.env.NODE_ENV === 'production' 
@@ -95,6 +104,16 @@ export const ContactSection = () => {
 
       console.log('EmailJS Result:', emailResult);
       console.log('Backend Result:', backendResult);
+
+      // Log specific EmailJS error details
+      if (!emailSuccess) {
+        console.error('EmailJS Error Details:', {
+          status: emailResult.status,
+          reason: emailResult.reason,
+          message: emailResult.reason?.message,
+          text: emailResult.reason?.text
+        });
+      }
 
       // Determine success message based on results
       if (emailSuccess && backendSuccess) {
