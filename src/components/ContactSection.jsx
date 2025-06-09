@@ -17,9 +17,9 @@ export const ContactSection = () => {
   const formRef = useRef();
   
   // EmailJS configuration from environment variables
-  const serviceId = process.env.REACT_APP_serviceId;
-  const templateId = process.env.REACT_APP_templateId;
-  const publicKey = process.env.REACT_APP_publicKey;
+  const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID;
+  const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID;
+  const publicKey = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
   
   const handleSubmit = async (e) => {
     e.preventDefault();
