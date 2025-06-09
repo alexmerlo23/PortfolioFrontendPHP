@@ -16,10 +16,10 @@ export const ContactSection = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef();
   
-  // EmailJS configuration
-  const serviceId = 'service_mfm77q9';
-  const templateId = 'template_c6acl8z';
-  const publicKey = 'aJpFuqhtNxUya2JST';
+  // EmailJS configuration from environment variables
+  const serviceId = process.env.serviceId;
+  const templateId = process.env.templateId;
+  const publicKey = process.env.publicKey;
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,6 +43,14 @@ export const ContactSection = () => {
       setIsSubmitting(false);
       return;
     }
+
+    // Debug EmailJS configuration
+    console.log('EmailJS Config:', {
+      serviceId,
+      templateId,
+      publicKey: publicKey ? `${publicKey.substring(0, 5)}...` : 'undefined',
+      hasForm: !!formRef.current
+    });
 
     try {
       // Send to both EmailJS and Backend API simultaneously
@@ -91,13 +99,13 @@ export const ContactSection = () => {
       // Determine success message based on results
       if (emailSuccess && backendSuccess) {
         toast({
-          title: "Message sent successfully",
-          description: "Thank you for your message. I'll get back to you soon!",
+          title: "Message sent successfully!",
+          description: "Thank you for your message. I'll get back to you soon.",
         });
       } else if (emailSuccess || backendSuccess) {
         toast({
-          title: "Message sent",
-          description: "Your message was delivered. I'll get back to you soon!",
+          title: "Message sent!",
+          description: "Your message was delivered. I'll get back to you soon.",
         });
         
         // Log partial failures for debugging
