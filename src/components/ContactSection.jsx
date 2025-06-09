@@ -77,8 +77,8 @@ export const ContactSection = () => {
       // Show success message
       const emailStatus = result.emailSent ? " Email notification sent!" : " (Email notification may have failed)";
       toast({
-        title: "Message sent!",
-        description: `Thank you for your message. I'll get back to you soon.${emailStatus}`,
+        title: "Message sent",
+        description: `Thank you for your message. I'll get back to you soon!`,
       });
       
       // Reset the form
