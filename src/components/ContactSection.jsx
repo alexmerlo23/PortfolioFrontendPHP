@@ -9,11 +9,17 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
+import emailjs from '@emailjs/browser';
 
 export const ContactSection = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef();
+  
+  // EmailJS configuration
+  const serviceId = 'service_mfm77q9';
+  const templateId = 'template_c6acl8z';
+  const publicKey = 'aJpFuqhtNxUya2JST';
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,40 +45,37 @@ export const ContactSection = () => {
     }
 
     try {
-      // Send to Node.js backend API
-      const API_URL = process.env.NODE_ENV === 'production' 
-        ? 'https://portfoliobackend-cbcjgweeaza9gubx.eastus2-01.azurewebsites.net/api/contact'
-        : 'http://localhost:3001/api/contact';
-      
-      console.log('Sending to:', API_URL);
-      console.log('Data:', contactData);
-      
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contactData)
-      });
+      // Send via EmailJS
+      const emailResult = await emailjs.sendForm(
+        serviceId,
+        templateId,
+        formRef.current,
+        publicKey
+      );
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      console.log('EmailJS Success:', emailResult);
 
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      let result;
-      
-      if (contentType && contentType.includes('application/json')) {
-        result = await response.json();
-      } else {
-        // If not JSON, get text to see what we received
-        const text = await response.text();
-        console.log('Non-JSON response:', text);
-        throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}...`);
-      }
+      // Also try to send to your backend API as backup
+      try {
+        const API_URL = process.env.NODE_ENV === 'production' 
+          ? 'https://portfoliobackend-cbcjgweeaza9gubx.eastus2-01.azurewebsites.net/api/contact'
+          : 'http://localhost:3001/api/contact';
+        
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(contactData)
+        });
 
-      if (!response.ok) {
-        throw new Error(result.error || `HTTP ${response.status}: ${result.message || 'Failed to send message'}`);
+        if (response.ok) {
+          console.log('Backend API also succeeded');
+        } else {
+          console.log('Backend API failed, but EmailJS succeeded');
+        }
+      } catch (backendError) {
+        console.log('Backend API error (EmailJS still succeeded):', backendError);
       }
 
       toast({
@@ -82,29 +85,65 @@ export const ContactSection = () => {
       
       // Reset the form
       formRef.current.reset();
+
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('EmailJS Error:', error);
       
-      // Handle different types of errors
-      let errorMessage = "There was a problem sending your message. Please try again.";
-      
-      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-        errorMessage = "Network error. Please check your connection and try again.";
-      } else if (error.message.includes('Too many')) {
-        errorMessage = "Too many requests. Please wait a few minutes before trying again.";
-      } else if (error.message.includes('404')) {
-        errorMessage = "API endpoint not found. The server may be down or the route is incorrect.";
-      } else if (error.message.includes('500')) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      // If EmailJS fails, try the backend API as fallback
+      try {
+        const API_URL = process.env.NODE_ENV === 'production' 
+          ? 'https://portfoliobackend-cbcjgweeaza9gubx.eastus2-01.azurewebsites.net/api/contact'
+          : 'http://localhost:3001/api/contact';
+        
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(contactData)
+        });
+
+        const contentType = response.headers.get('content-type');
+        let result;
+        
+        if (contentType && contentType.includes('application/json')) {
+          result = await response.json();
+        } else {
+          const text = await response.text();
+          throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}...`);
+        }
+
+        if (!response.ok) {
+          throw new Error(result.error || `HTTP ${response.status}: ${result.message || 'Failed to send message'}`);
+        }
+
+        toast({
+          title: "Message sent!",
+          description: "Thank you for your message. I'll get back to you soon!",
+        });
+        
+        formRef.current.reset();
+
+      } catch (backendError) {
+        console.error('Both EmailJS and backend failed:', backendError);
+        
+        // Handle different types of errors
+        let errorMessage = "There was a problem sending your message. Please try again.";
+        
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (error.text?.includes('Invalid')) {
+          errorMessage = "Invalid email configuration. Please try again or contact directly.";
+        } else if (backendError.message?.includes('Too many')) {
+          errorMessage = "Too many requests. Please wait a few minutes before trying again.";
+        }
+        
+        toast({
+          title: "Error sending message",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
-      
-      toast({
-        title: "Error sending message",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
