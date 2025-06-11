@@ -81,7 +81,7 @@ export const ContactSection = () => {
 
       // Show success message
       const emailStatus = result.emailSent ? " Email notification sent!" : " (Email notification may have failed)";
-      const backend = import.meta.env.VITE_API_BACKEND || 'node';
+      
       toast({
         title: "Message sent",
         description: `Thank you for your message. I'll get back to you soon! Sent using ${backend.toUpperCase()}.`,
