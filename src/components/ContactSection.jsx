@@ -51,6 +51,7 @@ export const ContactSection = () => {
       }
       console.log('Sending to:', API_URL);
       console.log('Data:', contactData);
+      console.log('Backend type:', backend);
       
       const response = await fetch(API_URL, {
         method: 'POST',
