@@ -40,10 +40,15 @@ export const ContactSection = () => {
 
     try {
       // Send to backend API (which now handles both database and EmailJS)
-      const API_URL = process.env.NODE_ENV === 'production' 
-        ? 'https://portfoliobackend-cbcjgweeaza9gubx.eastus2-01.azurewebsites.net/api/contact'
-        : 'http://localhost:3001/api/contact';
-      
+      const backend = import.meta.env.VITE_API_BACKEND_TYPE || 'node';
+
+      let API_URL;
+
+      if (backend === 'php') {
+        API_URL = 'https://portfoliobackendphp-d4anezewcvfneaa2.eastus2-01.azurewebsites.net/api/contact';
+      } else {
+        API_URL = 'https://portfoliobackend-cbcjgweeaza9gubx.eastus2-01.azurewebsites.net/api/contact';
+      }
       console.log('Sending to:', API_URL);
       console.log('Data:', contactData);
       
@@ -76,9 +81,10 @@ export const ContactSection = () => {
 
       // Show success message
       const emailStatus = result.emailSent ? " Email notification sent!" : " (Email notification may have failed)";
+      const backend = import.meta.env.VITE_API_BACKEND || 'node';
       toast({
         title: "Message sent",
-        description: `Thank you for your message. I'll get back to you soon!`,
+        description: `Thank you for your message. I'll get back to you soon! Sent using ${backend.toUpperCase()}.`,
       });
       
       // Reset the form
