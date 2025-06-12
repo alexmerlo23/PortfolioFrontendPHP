@@ -40,12 +40,12 @@ export const ContactSection = () => {
 
     try {
       // Send to backend API (which now handles both database and EmailJS)
-      const backend = 'node';
+      const backend = 'php';
 
       let API_URL;
 
-      if (backend === 'node') {
-        API_URL = 'portfoliobackend-cbcjgweeaza9gubx.eastus2-01.azurewebsites.net/api/contact';
+      if (backend === 'php') {
+        API_URL = 'https://portfoliobackendphp-d4anezewcvfneaa2.eastus2-01.azurewebsites.net/api/contact';
       }
       console.log('Sending to:', API_URL);
       console.log('Data:', contactData);
