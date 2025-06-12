@@ -40,7 +40,7 @@ export const ContactSection = () => {
 
     try {
       // Send to backend API (which now handles both database and EmailJS)
-      const backend = import.meta.env.VITE_API_BACKEND_TYPE || 'node';
+      const backend = import.meta.env.VITE_API_BACKEND_TYPE;
 
       let API_URL;
 
