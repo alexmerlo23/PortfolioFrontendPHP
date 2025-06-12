@@ -45,7 +45,7 @@ export const ContactSection = () => {
       let API_URL;
 
       if (backend === 'php') {
-        API_URL = 'https://portfoliobackendphp-d4anezewcvfneaa2.eastus2-01.azurewebsites.net/public/uploadContactForm.php';
+        API_URL = 'https://portfoliobackendphp-d4anezewcvfneaa2.eastus2-01.azurewebsites.net/uploadContactForm.php';
       }
       console.log('Sending to:', API_URL);
       console.log('Data:', contactData);
